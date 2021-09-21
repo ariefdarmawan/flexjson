@@ -30,10 +30,11 @@ func (c *Cursor) Fetch(out interface{}) dbflex.ICursor {
 	ptr.Elem().Set(reflect.MakeSlice(sliceOfT, 0, 0))
 	buffer := ptr.Interface()
 
-	err := c.Fetchs(buffer, 1)
+	err := c.Fetchs(buffer, 1).Error()
 	if err != nil {
 		return c
 	}
+	//fmt.Println("data:", toolkit.JsonString(buffer))
 
 	rv := reflect.Indirect(reflect.ValueOf(buffer))
 
@@ -83,7 +84,11 @@ func (c *Cursor) Fetchs(result interface{}, n int) dbflex.ICursor {
 
 	// Open file
 	file, err := os.Open(c.filePath)
-	if err != nil {
+	if err != nil && err == os.ErrNotExist {
+		// Since this is json file write empty json array to the newly created file
+		file, _ = os.Create(c.filePath)
+		file.WriteString("[]")
+	} else if err != nil {
 		c.SetError(err)
 		return c
 	}

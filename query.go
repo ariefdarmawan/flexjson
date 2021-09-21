@@ -56,8 +56,11 @@ func (q *Query) Cursor(toolkit.M) dbflex.ICursor {
 		c.SetError(err)
 	}
 	if _, err := os.Stat(filePath); err != nil {
-		if err == os.ErrNotExist {
-			//-- do something here
+		if err == os.ErrNotExist || strings.Contains(err.Error(), "no such file or directory") {
+			// Since this is json file write empty json array to the newly created file
+			file, _ := os.Create(filePath)
+			file.WriteString("[]")
+			file.Close()
 		} else {
 			c.SetError(err)
 			return c
@@ -104,6 +107,11 @@ func (q *Query) Execute(parm toolkit.M) (interface{}, error) {
 		if err != nil {
 			return err, toolkit.Errorf("unable to create file %s. %s", filePath, err.Error())
 		}
+	} else if !fileExist {
+		// Since this is json file write empty json array to the newly created file
+		file, _ := os.Create(filePath)
+		file.WriteString("[]")
+		file.Close()
 	}
 
 	// Mutex lock to manage multiple query run in a single connection
@@ -178,7 +186,7 @@ func (q *Query) Execute(parm toolkit.M) (interface{}, error) {
 			return nil, toolkit.Errorf("update fail, no data")
 		}
 		// Convert to flat M for easier access
-		mData, err := objToM(data)
+		mData, err := toolkit.ToM(data)
 		if err != nil {
 			return nil, err
 		}

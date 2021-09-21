@@ -57,6 +57,9 @@ func objToM(data interface{}, parents ...string) (toolkit.M, error) {
 			f := rv.Type().Field(i)
 			// Check of there is a json tag for this field
 			tag, ok := f.Tag.Lookup("json")
+			if tag == "-" {
+				continue
+			}
 
 			// If the type is struct but not time.Time or is a map
 			if (f.Type.Kind() == reflect.Struct && f.Type != reflect.TypeOf(time.Time{})) || f.Type.Kind() == reflect.Map {
@@ -182,6 +185,9 @@ func mapToObject(data map[string]interface{}, result interface{}, parents ...str
 				for i := 0; i < rv.NumField(); i++ {
 					f := rv.Type().Field(i)
 					tag, ok := f.Tag.Lookup("json")
+					if tag == "-" {
+						continue
+					}
 
 					if ok && tag == k {
 						sv = rv.Field(i)

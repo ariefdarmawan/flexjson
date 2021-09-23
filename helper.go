@@ -6,7 +6,6 @@ import (
 	"os"
 	"reflect"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -337,53 +336,65 @@ func isIncluded(data toolkit.M, f *dbflex.Filter) (bool, error) {
 
 		return match, nil
 	} else if f.Op == dbflex.OpGt {
-		v, err := strconv.ParseFloat(fmt.Sprint(dataValue), 64)
-		if err != nil {
-			return false, err
-		}
+		return toolkit.Compare(dataValue, f.Value, string(f.Op)), nil
+		/*
+			v, err := strconv.ParseFloat(fmt.Sprint(dataValue), 64)
+			if err != nil {
+				return false, err
+			}
 
-		c, err := strconv.ParseFloat(fmt.Sprint(f.Value), 64)
-		if err != nil {
-			return false, err
-		}
+			c, err := strconv.ParseFloat(fmt.Sprint(f.Value), 64)
+			if err != nil {
+				return false, err
+			}
 
-		return v > c, nil
+			return v > c, nil
+		*/
 	} else if f.Op == dbflex.OpGte {
-		v, err := strconv.ParseFloat(fmt.Sprint(dataValue), 64)
-		if err != nil {
-			return false, err
-		}
+		return toolkit.Compare(dataValue, f.Value, string(f.Op)), nil
+		/*
+			v, err := strconv.ParseFloat(fmt.Sprint(dataValue), 64)
+			if err != nil {
+				return false, err
+			}
 
-		c, err := strconv.ParseFloat(fmt.Sprint(f.Value), 64)
-		if err != nil {
-			return false, err
-		}
+			c, err := strconv.ParseFloat(fmt.Sprint(f.Value), 64)
+			if err != nil {
+				return false, err
+			}
 
-		return v >= c, nil
+			return v >= c, nil
+		*/
 	} else if f.Op == dbflex.OpLt {
-		v, err := strconv.ParseFloat(fmt.Sprint(dataValue), 64)
-		if err != nil {
-			return false, err
-		}
+		return toolkit.Compare(dataValue, f.Value, string(f.Op)), nil
+		/*
+			v, err := strconv.ParseFloat(fmt.Sprint(dataValue), 64)
+			if err != nil {
+				return false, err
+			}
 
-		c, err := strconv.ParseFloat(fmt.Sprint(f.Value), 64)
-		if err != nil {
-			return false, err
-		}
+			c, err := strconv.ParseFloat(fmt.Sprint(f.Value), 64)
+			if err != nil {
+				return false, err
+			}
 
-		return v < c, nil
+			return v < c, nil
+		*/
 	} else if f.Op == dbflex.OpLte {
-		v, err := strconv.ParseFloat(fmt.Sprint(dataValue), 64)
-		if err != nil {
-			return false, err
-		}
+		return toolkit.Compare(dataValue, f.Value, string(f.Op)), nil
+		/*
+			v, err := strconv.ParseFloat(fmt.Sprint(dataValue), 64)
+			if err != nil {
+				return false, err
+			}
 
-		c, err := strconv.ParseFloat(fmt.Sprint(f.Value), 64)
-		if err != nil {
-			return false, err
-		}
+			c, err := strconv.ParseFloat(fmt.Sprint(f.Value), 64)
+			if err != nil {
+				return false, err
+			}
 
-		return v <= c, nil
+			return v <= c, nil
+		*/
 	} else if f.Op == dbflex.OpRange {
 		// If filter operation is RANGE that means value should be slice with first value is the lowest and second value is the highest
 		// Check if the data is GTE than first filter value

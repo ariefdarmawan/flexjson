@@ -1,17 +1,14 @@
 package flexjson
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
-	"time"
 
 	"git.kanosolution.net/kano/dbflex"
 	"github.com/eaciit/toolkit"
-	flock "github.com/theckman/go-flock"
 )
 
 // Query is
@@ -119,18 +116,19 @@ func (q *Query) Execute(parm toolkit.M) (interface{}, error) {
 
 	// File locking to manage multiple connection open the same file
 	// Time out is set to 30 second
-	lockCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	/*
+		lockCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 
-	fileLock := flock.NewFlock(filePath)
-	// Try to get exclusive lock every 10ms until time out above
-	_, err = fileLock.TryLockContext(lockCtx, 10*time.Millisecond)
-	if err != nil {
-		return err, toolkit.Errorf("unable to lock file %s. %s", filePath, err.Error())
-	}
-
+		fileLock := flock.NewFlock(filePath)
+		// Try to get exclusive lock every 10ms until time out above
+		_, err = fileLock.TryLockContext(lockCtx, 10*time.Millisecond)
+		if err != nil {
+			return err, toolkit.Errorf("unable to lock file %s. %s", filePath, err.Error())
+		}
+	*/
 	defer func() {
-		fileLock.Unlock()
+		//fileLock.Unlock()
 		q.Connection().(*Connection).Unlock()
 	}()
 

@@ -27,7 +27,9 @@ func writeToJSONFile(data interface{}, file *os.File) error {
 		return err
 	}
 	// Sync file
-	file.Sync()
+	if err = file.Sync(); err != nil {
+		return err
+	}
 
 	return nil
 }

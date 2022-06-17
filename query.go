@@ -2,13 +2,14 @@ package flexjson
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 
 	"git.kanosolution.net/kano/dbflex"
-	"github.com/eaciit/toolkit"
+	"github.com/sebarcode/codekit"
 )
 
 // Query is
@@ -34,7 +35,7 @@ func (q *Query) filePath() (string, error) {
 	tablename := q.Config(dbflex.ConfigKeyTableName, "").(string)
 
 	if tablename == "" {
-		return "", toolkit.Errorf("no tablename is specified")
+		return "", fmt.Errorf("no tablename is specified")
 	}
 
 	filename = tablename + "." + conn.extension
@@ -43,7 +44,7 @@ func (q *Query) filePath() (string, error) {
 }
 
 // Cursor return cursor object for this query
-func (q *Query) Cursor(toolkit.M) dbflex.ICursor {
+func (q *Query) Cursor(codekit.M) dbflex.ICursor {
 	c := new(Cursor)
 	c.SetThis(c)
 	c.SetConnection(q.Connection())
@@ -75,7 +76,7 @@ func (q *Query) Cursor(toolkit.M) dbflex.ICursor {
 }
 
 // Execute the query with its configuration
-func (q *Query) Execute(parm toolkit.M) (interface{}, error) {
+func (q *Query) Execute(parm codekit.M) (interface{}, error) {
 	cmdType := q.Config(dbflex.ConfigKeyCommandType, "").(string)
 	where := q.Config(dbflex.ConfigKeyWhere, nil)
 
@@ -102,7 +103,7 @@ func (q *Query) Execute(parm toolkit.M) (interface{}, error) {
 		file.Close()
 
 		if err != nil {
-			return err, toolkit.Errorf("unable to create file %s. %s", filePath, err.Error())
+			return err, fmt.Errorf("unable to create file %s. %s", filePath, err.Error())
 		}
 	} else if !fileExist {
 		// Since this is json file write empty json array to the newly created file
@@ -124,7 +125,7 @@ func (q *Query) Execute(parm toolkit.M) (interface{}, error) {
 		// Try to get exclusive lock every 10ms until time out above
 		_, err = fileLock.TryLockContext(lockCtx, 10*time.Millisecond)
 		if err != nil {
-			return err, toolkit.Errorf("unable to lock file %s. %s", filePath, err.Error())
+			return err, fmt.Errorf("unable to lock file %s. %s", filePath, err.Error())
 		}
 	*/
 	defer func() {
@@ -144,7 +145,7 @@ func (q *Query) Execute(parm toolkit.M) (interface{}, error) {
 	insert := func() error {
 		data, hasData := parm["data"]
 		if !hasData {
-			return toolkit.Errorf("insert fail, no data")
+			return fmt.Errorf("insert fail, no data")
 		}
 
 		datas := []interface{}{}
@@ -176,15 +177,15 @@ func (q *Query) Execute(parm toolkit.M) (interface{}, error) {
 
 	switch cmdType {
 	case dbflex.QuerySelect:
-		return nil, toolkit.Errorf("select command should use cursor instead of execute")
+		return nil, fmt.Errorf("select command should use cursor instead of execute")
 
 	case dbflex.QuerySave:
 		data, hasData := parm["data"]
 		if !hasData {
-			return nil, toolkit.Errorf("update fail, no data")
+			return nil, fmt.Errorf("update fail, no data")
 		}
 		// Convert to flat M for easier access
-		mData, err := toolkit.ToM(data)
+		mData, err := codekit.ToM(data)
 		if err != nil {
 			return nil, err
 		}
@@ -209,7 +210,7 @@ func (q *Query) Execute(parm toolkit.M) (interface{}, error) {
 
 			// Check if there is more data
 			for decoder.More() {
-				ed := toolkit.M{}
+				ed := codekit.M{}
 				// Decode data one by one
 				err := decoder.Decode(&ed)
 				if err != nil {
@@ -264,7 +265,7 @@ func (q *Query) Execute(parm toolkit.M) (interface{}, error) {
 	case dbflex.QueryUpdate:
 		data, hasData := parm["data"]
 		if !hasData {
-			return nil, toolkit.Errorf("update fail, no data")
+			return nil, fmt.Errorf("update fail, no data")
 		}
 
 		// Initiate new decoder from stream
@@ -276,11 +277,11 @@ func (q *Query) Execute(parm toolkit.M) (interface{}, error) {
 		}
 
 		// Initiate updated datas
-		updatedData := []toolkit.M{}
+		updatedData := []codekit.M{}
 
 		// Check if there is more data
 		for decoder.More() {
-			ed := toolkit.M{}
+			ed := codekit.M{}
 			// Decode data one by one
 			err := decoder.Decode(&ed)
 			if err != nil {
@@ -339,11 +340,11 @@ func (q *Query) Execute(parm toolkit.M) (interface{}, error) {
 			}
 
 			// Initiate updated datas
-			updatedData := []toolkit.M{}
+			updatedData := []codekit.M{}
 
 			// Check if there is more data
 			for decoder.More() {
-				data := toolkit.M{}
+				data := codekit.M{}
 				// Decode data one by one
 				err := decoder.Decode(&data)
 				if err != nil {
@@ -373,7 +374,7 @@ func (q *Query) Execute(parm toolkit.M) (interface{}, error) {
 		}
 
 	default:
-		return nil, toolkit.Errorf("unknown command: %s", cmdType)
+		return nil, fmt.Errorf("unknown command: %s", cmdType)
 	}
 
 	return nil, nil

@@ -1,6 +1,7 @@
 package flexjson
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -8,7 +9,6 @@ import (
 	"sync"
 
 	"git.kanosolution.net/kano/dbflex"
-	"github.com/eaciit/toolkit"
 )
 
 func init() {
@@ -39,7 +39,7 @@ type Connection struct {
 func (c *Connection) Connect() error {
 	dirpath := c.Database
 	if dirpath == "" {
-		return toolkit.Errorf("")
+		return fmt.Errorf("")
 	}
 
 	fi, err := os.Stat(dirpath)
@@ -48,7 +48,7 @@ func (c *Connection) Connect() error {
 	}
 
 	if fi.IsDir() == false {
-		return toolkit.Errorf("%s is not a directory", dirpath)
+		return fmt.Errorf("%s is not a directory", dirpath)
 	}
 
 	c.dirInfo = fi

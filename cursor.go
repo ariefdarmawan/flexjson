@@ -2,12 +2,12 @@ package flexjson
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"reflect"
 
-	"github.com/eaciit/toolkit"
-
 	"git.kanosolution.net/kano/dbflex"
+	"github.com/sebarcode/codekit"
 )
 
 // Cursor responsible for converting the text data to given buffer
@@ -34,7 +34,7 @@ func (c *Cursor) Fetch(out interface{}) dbflex.ICursor {
 	if err != nil {
 		return c
 	}
-	//fmt.Println("data:", toolkit.JsonString(buffer))
+	//fmt.Println("data:", codekit.JsonString(buffer))
 
 	rv := reflect.Indirect(reflect.ValueOf(buffer))
 
@@ -106,7 +106,7 @@ func (c *Cursor) Fetchs(result interface{}, n int) dbflex.ICursor {
 
 	// Check if there is more data
 	for decoder.More() {
-		data := toolkit.M{}
+		data := codekit.M{}
 		// Decode data one by one
 		err := decoder.Decode(&data)
 		if err != nil {
@@ -132,7 +132,7 @@ func (c *Cursor) Fetchs(result interface{}, n int) dbflex.ICursor {
 				iv := reflect.New(v).Interface()
 				err = mapToObject(data, iv)
 				if err != nil {
-					err = toolkit.Errorf("unable to serialize data. %s - %s", data, err.Error())
+					err = fmt.Errorf("unable to serialize data. %s - %s", data, err.Error())
 					c.SetError(err)
 					return c
 				}
@@ -158,7 +158,7 @@ func (c *Cursor) Fetchs(result interface{}, n int) dbflex.ICursor {
 
 	// Set the buffer with fetchedData
 	reflect.Indirect(reflect.ValueOf(result)).Set(ivs)
-	//println("aggr: ivs1:", toolkit.JsonString(ivs.Interface()))
+	//println("aggr: ivs1:", codekit.JsonString(ivs.Interface()))
 
 	// Check if have aggregation command
 	if hasAggr {
@@ -173,7 +173,7 @@ func (c *Cursor) Fetchs(result interface{}, n int) dbflex.ICursor {
 		}
 
 		// Use aggregate helper
-		//println("aggr: ivs2:", toolkit.JsonString(ivs.Interface()))
+		//println("aggr: ivs2:", codekit.JsonString(ivs.Interface()))
 		aggrResults, err := aggregate(result, items, groups...)
 		if err != nil {
 			c.SetError(err)
@@ -186,14 +186,14 @@ func (c *Cursor) Fetchs(result interface{}, n int) dbflex.ICursor {
 		// Get all the keys
 		aggrKeys := []string{}
 		if len(aggrResults) > 0 {
-			for k := range aggrResults[0].(toolkit.M) {
+			for k := range aggrResults[0].(codekit.M) {
 				aggrKeys = append(aggrKeys, k)
 			}
 		}
 
 		// Iterate trhough aggregation result
 		for _, ar := range aggrResults {
-			aggrResult := ar.(toolkit.M)
+			aggrResult := ar.(codekit.M)
 			// Create new empty variable with the type of given buffer element
 			iv := reflect.New(v).Elem()
 
@@ -279,7 +279,7 @@ func (c *Cursor) Count() int {
 
 	// Check if there is more data
 	for decoder.More() {
-		data := toolkit.M{}
+		data := codekit.M{}
 
 		decoder.Decode(&data)
 		ok, _ := isIncluded(data, c.filter)

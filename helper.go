@@ -2,6 +2,7 @@ package flexjson
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -10,7 +11,7 @@ import (
 	"time"
 
 	"git.kanosolution.net/kano/dbflex"
-	"github.com/eaciit/toolkit"
+	"github.com/sebarcode/codekit"
 )
 
 func writeToJSONFile(data interface{}, file *os.File) error {
@@ -34,14 +35,14 @@ func writeToJSONFile(data interface{}, file *os.File) error {
 	return nil
 }
 
-// Convert object or maps to flat toolkit.M
-// This function is completely different with toolkit.ToM
+// Convert object or maps to flat codekit.M
+// This function is completely different with codekit.ToM
 // In here we use reflect to keep its original value and type
-// instead of serde using json like toolkit.M do that will convert everything to text (CMIIW)
-func objToM(data interface{}, parents ...string) (toolkit.M, error) {
+// instead of serde using json like codekit.M do that will convert everything to text (CMIIW)
+func objToM(data interface{}, parents ...string) (codekit.M, error) {
 	rv := reflect.Indirect(reflect.ValueOf(data))
 	// Create emapty map as a result
-	res := toolkit.M{}
+	res := codekit.M{}
 
 	// If passed data have nested object / value then we need to keep track of the parents name
 	// Use "." (dot) separator as the level separator
@@ -66,7 +67,7 @@ func objToM(data interface{}, parents ...string) (toolkit.M, error) {
 			if (f.Type.Kind() == reflect.Struct && f.Type != reflect.TypeOf(time.Time{})) || f.Type.Kind() == reflect.Map {
 				// Then we need to call this function again to fetch the sub value
 				var err error
-				var subRes toolkit.M
+				var subRes codekit.M
 
 				// If there is a json tag, use it as parent name instead of the original field name
 				if ok {
@@ -131,7 +132,7 @@ func objToM(data interface{}, parents ...string) (toolkit.M, error) {
 	}
 
 	// If the data element is not map or struct then return error
-	return nil, toolkit.Errorf("Expecting struct or map object but got %s", rv.Kind())
+	return nil, fmt.Errorf("Expecting struct or map object but got %s", rv.Kind())
 }
 
 func textToInterface(txt string, receiverType reflect.Type) interface{} {
@@ -140,11 +141,11 @@ func textToInterface(txt string, receiverType reflect.Type) interface{} {
 	if typeName == "string" {
 		objField = txt
 	} else if strings.HasPrefix(typeName, "int") && receiverType.Kind() != reflect.Interface {
-		objField = toolkit.ToInt(txt, toolkit.RoundingAuto)
+		objField = codekit.ToInt(txt, codekit.RoundingAuto)
 	} else if typeName == "float32" {
-		objField = toolkit.ToFloat32(txt, 4, toolkit.RoundingAuto)
+		objField = codekit.ToFloat32(txt, 4, codekit.RoundingAuto)
 	} else if typeName == "float64" {
-		objField = toolkit.ToFloat64(txt, 4, toolkit.RoundingAuto)
+		objField = codekit.ToFloat64(txt, 4, codekit.RoundingAuto)
 	} else if receiverType == reflect.TypeOf(time.Time{}) {
 		objField, _ = time.Parse(time.RFC3339, txt)
 	} else {
@@ -210,7 +211,7 @@ func mapToObject(data map[string]interface{}, result interface{}, parents ...str
 			}
 		}
 	} else {
-		return toolkit.Errorf("Unexpected type of %s", t.Kind())
+		return fmt.Errorf("Unexpected type of %s", t.Kind())
 	}
 
 	return nil
@@ -218,7 +219,7 @@ func mapToObject(data map[string]interface{}, result interface{}, parents ...str
 
 // isIncluded return true if the data is match with the given filter, if not then return false.
 // If there is an error while checking the data, then it return false, and the error
-func isIncluded(data toolkit.M, f *dbflex.Filter) (bool, error) {
+func isIncluded(data codekit.M, f *dbflex.Filter) (bool, error) {
 	// if the filter is nil, we assume that the caller want to show all the data
 	// So we return true
 	if f == nil {
@@ -245,7 +246,7 @@ func isIncluded(data toolkit.M, f *dbflex.Filter) (bool, error) {
 
 	// If the field is not found and filter operatrion is not AND, OR, RANGE return error
 	if len(keys) != len(subNames) && f.Op != dbflex.OpAnd && f.Op != dbflex.OpOr && f.Op != dbflex.OpRange && f.Op != dbflex.OpNot {
-		return false, toolkit.Errorf("field with name %s is not exist in the table", f.Field)
+		return false, fmt.Errorf("field with name %s is not exist in the table", f.Field)
 	}
 
 	// Get the data value if field name is found
@@ -265,13 +266,13 @@ func isIncluded(data toolkit.M, f *dbflex.Filter) (bool, error) {
 		}
 	} else if f.Op == dbflex.OpContains {
 		keywords := func() []string {
-			l := toolkit.SliceLen(f.Value)
+			l := codekit.SliceLen(f.Value)
 			if l == 0 {
 				return []string{}
 			}
 			res := make([]string, l)
 			for i := 0; i < l; i++ {
-				res[i] = toolkit.SliceItem(f.Value, i).(string)
+				res[i] = codekit.SliceItem(f.Value, i).(string)
 			}
 			return res
 		}()
@@ -283,9 +284,9 @@ func isIncluded(data toolkit.M, f *dbflex.Filter) (bool, error) {
 		match := false
 
 		/*
-			fmt.Println("contains:", toolkit.JsonString(f.Value))
+			fmt.Println("contains:", codekit.JsonString(f.Value))
 			fmt.Println("contains:", dataValue)
-			fmt.Println("contains:", toolkit.JsonString(keywords))
+			fmt.Println("contains:", codekit.JsonString(keywords))
 		*/
 
 		for _, keyword := range keywords {
@@ -302,13 +303,13 @@ func isIncluded(data toolkit.M, f *dbflex.Filter) (bool, error) {
 		return strings.HasSuffix(dataValue, fmt.Sprint(f.Value)), nil
 	} else if f.Op == dbflex.OpIn {
 		keywords := func() []string {
-			l := toolkit.SliceLen(f.Value)
+			l := codekit.SliceLen(f.Value)
 			if l == 0 {
 				return []string{}
 			}
 			res := make([]string, l)
 			for i := 0; i < l; i++ {
-				res[i] = toolkit.SliceItem(f.Value, i).(string)
+				res[i] = codekit.SliceItem(f.Value, i).(string)
 			}
 			return res
 		}()
@@ -338,7 +339,7 @@ func isIncluded(data toolkit.M, f *dbflex.Filter) (bool, error) {
 
 		return match, nil
 	} else if f.Op == dbflex.OpGt {
-		return toolkit.Compare(dataValue, f.Value, string(f.Op)), nil
+		return codekit.Compare(dataValue, f.Value, string(f.Op)), nil
 		/*
 			v, err := strconv.ParseFloat(fmt.Sprint(dataValue), 64)
 			if err != nil {
@@ -353,7 +354,7 @@ func isIncluded(data toolkit.M, f *dbflex.Filter) (bool, error) {
 			return v > c, nil
 		*/
 	} else if f.Op == dbflex.OpGte {
-		return toolkit.Compare(dataValue, f.Value, string(f.Op)), nil
+		return codekit.Compare(dataValue, f.Value, string(f.Op)), nil
 		/*
 			v, err := strconv.ParseFloat(fmt.Sprint(dataValue), 64)
 			if err != nil {
@@ -368,7 +369,7 @@ func isIncluded(data toolkit.M, f *dbflex.Filter) (bool, error) {
 			return v >= c, nil
 		*/
 	} else if f.Op == dbflex.OpLt {
-		return toolkit.Compare(dataValue, f.Value, string(f.Op)), nil
+		return codekit.Compare(dataValue, f.Value, string(f.Op)), nil
 		/*
 			v, err := strconv.ParseFloat(fmt.Sprint(dataValue), 64)
 			if err != nil {
@@ -383,7 +384,7 @@ func isIncluded(data toolkit.M, f *dbflex.Filter) (bool, error) {
 			return v < c, nil
 		*/
 	} else if f.Op == dbflex.OpLte {
-		return toolkit.Compare(dataValue, f.Value, string(f.Op)), nil
+		return codekit.Compare(dataValue, f.Value, string(f.Op)), nil
 		/*
 			v, err := strconv.ParseFloat(fmt.Sprint(dataValue), 64)
 			if err != nil {
@@ -488,7 +489,7 @@ func aggregate(data interface{}, aggrItems []*dbflex.AggrItem, groups ...string)
 		return []interface{}{}, nil
 	}
 
-	opResults := toolkit.M{}
+	opResults := codekit.M{}
 	aggregatedFieldNames := map[string]string{}
 	groupedFieldNames := []string{}
 	v1 := rv.Index(0)
@@ -528,7 +529,7 @@ func aggregate(data interface{}, aggrItems []*dbflex.AggrItem, groups ...string)
 			}
 		}
 	} else {
-		return nil, toolkit.Errorf("expecting struct or map object got %s", v1.String())
+		return nil, fmt.Errorf("expecting struct or map object got %s", v1.String())
 	}
 
 	// Iterate through all aggregation items
@@ -558,16 +559,16 @@ func aggregate(data interface{}, aggrItems []*dbflex.AggrItem, groups ...string)
 					keyID += "-" + fmt.Sprint(getValueOf(vj, rg))
 				}
 
-				var prevResult toolkit.M
+				var prevResult codekit.M
 				// get the value of aggregated fields as int
 				// BUG: if the type are Int8, Int16, Int32, Int64 this will fail
-				v := toolkit.ToInt(getValueOf(vj, name), toolkit.RoundingAuto)
+				v := codekit.ToInt(getValueOf(vj, name), codekit.RoundingAuto)
 
 				// Check if the previous results with the specific keyID is already exist
 				r, exist := opResults[keyID]
 				if !exist {
 					// If not exist then create empty M
-					prevResult = toolkit.M{}
+					prevResult = codekit.M{}
 					// And set it as the prevuious result of the specific keyID
 					opResults[keyID] = prevResult
 
@@ -592,8 +593,8 @@ func aggregate(data interface{}, aggrItems []*dbflex.AggrItem, groups ...string)
 						prevResult[name] = int(0)
 					}
 				} else {
-					// If previous result is exist the cast it as toolkit.M
-					prevResult = r.(toolkit.M)
+					// If previous result is exist the cast it as codekit.M
+					prevResult = r.(codekit.M)
 				}
 
 				switch item.Op {
@@ -613,7 +614,7 @@ func aggregate(data interface{}, aggrItems []*dbflex.AggrItem, groups ...string)
 						prevResult[name] = v
 					}
 				default:
-					return nil, toolkit.Error("Unknown aggregation operation")
+					return nil, errors.New("Unknown aggregation operation")
 				}
 			}
 
@@ -621,7 +622,7 @@ func aggregate(data interface{}, aggrItems []*dbflex.AggrItem, groups ...string)
 			// Divide each result with its count
 			if item.Op == dbflex.AggrAvg {
 				for _, r := range opResults {
-					v := r.(toolkit.M)
+					v := r.(codekit.M)
 					v[name] = v[name].(int) / v[name+"_count"].(int)
 				}
 			}
@@ -640,7 +641,7 @@ func aggregate(data interface{}, aggrItems []*dbflex.AggrItem, groups ...string)
 					keyID += fmt.Sprint(getValueOf(vj, rg))
 				}
 
-				var prevResult toolkit.M
+				var prevResult codekit.M
 				// get the value of aggregated fields as float64
 				// BUG: if the type is Float32 this will fail
 				v := getValueOf(vj, name).(float64)
@@ -649,7 +650,7 @@ func aggregate(data interface{}, aggrItems []*dbflex.AggrItem, groups ...string)
 				r, exist := opResults[keyID]
 				if !exist {
 					// If not exist then create empty M
-					prevResult = toolkit.M{}
+					prevResult = codekit.M{}
 					// And set it as the prevuious result of the specific keyID
 					opResults[keyID] = prevResult
 
@@ -674,14 +675,14 @@ func aggregate(data interface{}, aggrItems []*dbflex.AggrItem, groups ...string)
 						prevResult[name] = float64(0)
 					}
 				} else {
-					// If previous result is exist the cast it as toolkit.M
-					prevResult = r.(toolkit.M)
+					// If previous result is exist the cast it as codekit.M
+					prevResult = r.(codekit.M)
 				}
 
 				switch item.Op {
 				case dbflex.AggrSum, dbflex.AggrAvg:
 					prevResult[name] = prevResult[name].(float64) + v
-					//fmt.Println("aggr:", toolkit.JsonString(prevResult), "|", toolkit.JsonString(vj.Interface()))
+					//fmt.Println("aggr:", codekit.JsonString(prevResult), "|", codekit.JsonString(vj.Interface()))
 				case dbflex.AggrCount:
 					prevResult[name] = prevResult[name].(float64) + 1
 				case dbflex.AggrMax:
@@ -693,7 +694,7 @@ func aggregate(data interface{}, aggrItems []*dbflex.AggrItem, groups ...string)
 						prevResult[name] = v
 					}
 				default:
-					return nil, toolkit.Error("Unknown aggregation operation")
+					return nil, errors.New("Unknown aggregation operation")
 				}
 			}
 
@@ -701,14 +702,14 @@ func aggregate(data interface{}, aggrItems []*dbflex.AggrItem, groups ...string)
 			// Divide each result with its count
 			if item.Op == dbflex.AggrAvg {
 				for _, r := range opResults {
-					v := r.(toolkit.M)
+					v := r.(codekit.M)
 					v[name] = v[name].(float64) / v[name+"_count"].(float64)
 				}
 			}
 
 			// If the type is not a number return error
 		default:
-			return nil, toolkit.Errorf("Cannot aggregate %s values", kind.String())
+			return nil, fmt.Errorf("Cannot aggregate %s values", kind.String())
 		}
 	}
 
@@ -736,7 +737,7 @@ func getValueOf(from reflect.Value, name string) interface{} {
 func byField(data interface{}, field string) error {
 	v := reflect.ValueOf(data)
 	if v.Kind() != reflect.Slice {
-		return toolkit.Error("byField takes a slice as data ")
+		return errors.New("byField takes a slice as data ")
 	}
 	if v.Len() == 0 {
 		return nil
@@ -773,11 +774,11 @@ func byField(data interface{}, field string) error {
 			}
 		}
 	} else {
-		return toolkit.Error("byField takes a slice of structs or slice of map as data")
+		return errors.New("byField takes a slice of structs or slice of map as data")
 	}
 
 	if !found {
-		return toolkit.Error("byField cannot find field " + field)
+		return errors.New("byField cannot find field " + field)
 	}
 
 	if f1.Type().Kind() == reflect.Interface {
@@ -816,10 +817,10 @@ func byField(data interface{}, field string) error {
 				keyValues: makeTimeKeys(v, fieldName, v.Len()),
 			}
 		} else {
-			return toolkit.Error("Cannot compare " + f1.Type().String() + " values")
+			return errors.New("Cannot compare " + f1.Type().String() + " values")
 		}
 	default:
-		return toolkit.Error("Cannot compare " + f1.Type().String() + " values")
+		return errors.New("Cannot compare " + f1.Type().String() + " values")
 	}
 
 	if reverseOrder {

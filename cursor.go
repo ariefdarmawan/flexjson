@@ -42,7 +42,7 @@ func (c *Cursor) Fetch(out interface{}) dbflex.ICursor {
 		v1 := reflect.Indirect(rv.Index(0))
 		reflect.Indirect(reflect.ValueOf(out)).Set(v1)
 	} else {
-		c.SetError(dbflex.EOF)
+		c.SetError(dbflex.ErrEOF)
 		return c
 	}
 
